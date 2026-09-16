@@ -11,27 +11,33 @@ public class CommandExecutor
         _windowsManager = new WindowsManager();
     }
 
-    public void Execute(Command command)
+    public bool Execute(Command command)
     {
-        switch (command.Type)
+        if (string.IsNullOrWhiteSpace(command.CommandName))
+        {
+            return false;
+        }
+
+        switch (command.CommandName.ToLower())
         {
             case "shutdown":
                 _windowsManager.Shutdown();
-                break;
+                return true;
 
             case "restart":
                 _windowsManager.Restart();
-                break;
+                return true;
 
             case "lock":
                 _windowsManager.Lock();
-                break;
+                return true;
 
             default:
                 Console.WriteLine(
-                    $"Unknown command: {command.Type}"
+                    $"Unknown command: {command.CommandName}"
                 );
-                break;
+
+                return false;
         }
     }
 }

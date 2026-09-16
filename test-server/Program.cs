@@ -50,7 +50,12 @@ app.Map("/", async context =>
 
         Console.WriteLine($"Received: {message}");
 
-        string response = "Hello from server!";
+        string response = """
+{
+    "type": "ack",
+    "message": "Agent registered successfully"
+}
+""";
 
         byte[] responseBytes = Encoding.UTF8.GetBytes(response);
 
