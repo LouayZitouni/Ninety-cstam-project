@@ -5,7 +5,7 @@ const userRepo = require('../infrastructure/database/userRepository');
 const generateToken = (userId, role) => {
   return jwt.sign(
     { id: userId, role },
-    process.env.JWT_SECRET || 'supersecretkey',
+    process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN}
   );
 };
@@ -54,7 +54,14 @@ const loginUser = async({email,password}) =>{
     const token = generateToken(user.id, user.role);
     delete user.password_hash;
 
-    return { user, token };
+    const refreshToken = jwt.sign(
+        { id: user.id },
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: '7d' } // Long-lived refresh token
+    );
+
+    await userRepo.saveRefreshToken(user.id, refreshToken);
+    return { user, token, refreshToken};
 
 };
 
@@ -74,9 +81,68 @@ const deleteUserByEmail = async(email) =>{
     return { message: 'User deleted successfully', deletedUser: result };
 }
 
+const getProfile = async (userId) => {
+  const user = await userRepo.findUserById(userId);
+  if (!user) {
+    const error = new Error('User account does not exists');
+    error.statusCode = 404;
+    throw error;
+  }
+  return user;
+};
+
+const logoutUser = async (userId) => {
+  const user = await userRepo.revokeRefreshToken(userId);
+  if (!user) {
+    const error = new Error('User account not found or session already terminated');
+    error.statusCode = 404;
+    throw error;
+  }
+  return { message: 'Session invalidated and logged out successfully' };
+};
+
+const refreshAccessToken = async (incomingRefreshToken) => {
+  if (!incomingRefreshToken) {
+    const error = new Error('Refresh token is required');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  // 1. Validate JWT signature and expiration
+  let decoded;
+  try {
+    decoded = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+  } catch (err) {
+    const error = new Error('Invalid or expired refresh token');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  // 2. Verify token matches PostgreSQL database record
+  const user = await userRepo.findUserByRefreshToken(incomingRefreshToken);
+  if (!user) {
+    const error = new Error('Session revoked or token invalid');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  // 3. Issue a fresh access token
+  const newAccessToken = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+
+  return { accessToken: newAccessToken };
+};
+
+
 
 module.exports = {
   registerUser,
   loginUser,
-  deleteUserByEmail
+  deleteUserByEmail,
+  getProfile,
+  logoutUser,
+  refreshAccessToken
 };

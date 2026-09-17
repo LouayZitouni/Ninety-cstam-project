@@ -36,10 +36,43 @@ const deleteUserByEmail = async (email) =>{
   return rows[0];
 }
 
+const saveRefreshToken = async (userId, refreshToken) => {
+  const query = `
+    UPDATE users 
+    SET refresh_token = $1, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = $2;
+  `;
+  await db.query(query, [refreshToken, userId]);
+};
+
+const revokeRefreshToken = async (userId) => {
+  const query = `
+    UPDATE users 
+    SET refresh_token = NULL, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = $1 
+    RETURNING id, email;
+  `;
+  const { rows } = await db.query(query, [userId]);
+  return rows[0];
+};
+
+const findUserByRefreshToken = async (refreshToken) => {
+  const query = `
+    SELECT id, username, email, role, refresh_token 
+    FROM users 
+    WHERE refresh_token = $1;
+  `;
+  const { rows } = await db.query(query, [refreshToken]);
+  return rows[0];
+};
+
 module.exports ={
     getAllUsers,
     findUserById,
     findUserByEmail,
     createUser,
-    deleteUserByEmail
+    deleteUserByEmail,
+    revokeRefreshToken,
+    saveRefreshToken,
+    findUserByRefreshToken
 }
