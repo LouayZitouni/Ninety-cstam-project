@@ -1,5 +1,5 @@
 const { protect } = require('../middlewares/auth');
-const isAdmin = require('../middlewares/roleCheck');
+const {isAdmin} = require('../middlewares/roleCheck');
 
 const express = require('express');
 const {
@@ -12,6 +12,7 @@ const {
 } = require('../controllers/stationController');
 
 const router = express.Router();
+
 
 router.post('/', protect, isAdmin, createStation);
 

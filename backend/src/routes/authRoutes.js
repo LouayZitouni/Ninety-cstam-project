@@ -1,6 +1,6 @@
 const express = require('express');
 const { register, login , getMe , deleteUser , logout , refresh } = require('../controllers/authController');
-const isAdmin = require('../middlewares/roleCheck');
+const {isAdmin} = require('../middlewares/roleCheck');
 const { protect } = require('../middlewares/auth');
 
 const router = express.Router();

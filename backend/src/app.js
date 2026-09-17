@@ -2,6 +2,7 @@ const express = require('express');
 const stationRoutes = require('./routes/stationRoute');
 const errorHandler = require('./middlewares/errorHandler');
 const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -20,5 +21,7 @@ app.use('/api/stations', stationRoutes);
 app.use(errorHandler);
 
 app.use('/api/auth', authRoutes);
+
+app.use('/socket' , adminRoutes);
 
 module.exports = app;
