@@ -3,16 +3,16 @@ const { sendCommandToStation } = require('../protocols/agentSocketHandler');
 const sendRemoteCommand = async (req, res, next) => {
   try {
     const { stationId } = req.params;
-    const { command, payload } = req.body; 
+    const { type, payload, timeoutMs } = req.body; 
 
-    const allowedCommands = ['LOCK_SCREEN', 'UNLOCK_SCREEN', 'SHUTDOWN', 'RESTART'];
-    if (!allowedCommands.includes(command)) {
-      return res.status(400).json({ success: false, error: 'Invalid remote command' });
+    const allowedTypes = ['EXEC_SHELL', 'LOCK_SCREEN', 'UNLOCK_SCREEN', 'SHUTDOWN', 'RESTART'];
+    if (!allowedTypes.includes(type)) {
+      return res.status(400).json({ success: false, error: 'Invalid command type' });
     }
 
-    const delivered = sendCommandToStation(stationId, command, payload);
+    const commandId = sendCommandToStation(stationId, type, payload, timeoutMs || 10000);
 
-    if (!delivered) {
+    if (!commandId) {
       return res.status(404).json({
         success: false,
         error: 'Station Agent is offline or not connected'
@@ -21,7 +21,8 @@ const sendRemoteCommand = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: `Command '${command}' sent successfully to station ${stationId}`
+      commandId,
+      message: `Command type '${type}' dispatched to station ${stationId}`
     });
   } catch (err) {
     next(err);

@@ -1,45 +1,58 @@
 const { Server } = require('socket.io');
+const crypto = require('crypto');
 const stationRepo = require('../infrastructure/database/stationRepository');
-
-// Map to store active station connections: stationId -> socketId
-const connectedAgents = new Map();
+const agentRegistry = require('../infrastructure/sockets/agentRegistry');
 
 let io;
 
 const initSocket = (server) => {
-  io = new Server(server, {
-    cors: { origin: '*' }
-  });
+  io = new Server(server, { cors: { origin: '*' } });
 
-  io.on('connection', async(socket) => {
-    console.log(`🔌 Agent trying to connect: ${socket.id}`);
+  io.on('connection', (socket) => {
+    console.log(`🔌 Socket connected: ${socket.id}`);
 
-    // Desktop Agent registers upon startup
-    socket.on('REGISTER_AGENT', async({ stationId }) => {
-      connectedAgents.set(stationId, socket.id);
+
+    socket.on('REGISTER_AGENT', async ({ stationId }) => {
+      if (!stationId) return;
+
+      agentRegistry.register(stationId, socket.id);
       socket.stationId = stationId;
-      console.log(`✅ Station [${stationId}] registered on Socket [${socket.id}]`);
+      console.log(`✅ Station [${stationId}] mapped to Socket [${socket.id}]`);
 
       try {
         await stationRepo.updateStationStatus(stationId, 'AVAILABLE');
-        console.log(`✅ Station [${stationId}] status updated to AVAILABLE in DB`);
       } catch (err) {
-        console.error(`Failed to update DB for station ${stationId}:`, err.message);
+        console.error(`Failed DB status update for station ${stationId}:`, err.message);
       }
     });
 
-    // Cleanup on disconnect
-    socket.on('disconnect', async() => {
+
+    socket.on('COMMAND_RESULT', (data) => {
+      const { commandId, stationId, type, status, payload, timestamp } = data;
+
+      console.log(`📥 RECEIVED [${type}] from Station [${stationId}]:`, {
+        commandId,
+        status,
+        stdout: payload?.stdout,
+        stderr: payload?.stderr,
+        exitCode: payload?.exitCode,
+        timestamp
+      });
+
+
+    });
+
+
+    socket.on('disconnect', async () => {
       if (socket.stationId) {
-        const disconnectedStationId = socket.stationId;
-        connectedAgents.delete(socket.stationId);
-        console.log(`❌ Station [${socket.stationId}] disconnected`);
+        const stationId = socket.stationId;
+        agentRegistry.unregister(stationId);
+        console.log(`❌ Station [${stationId}] unregistered`);
 
         try {
-          await stationRepo.updateStationStatus(disconnectedStationId, 'OFFLINE');
-          console.log(`❌ Station [${disconnectedStationId}] status updated to OFFLINE in DB`);
+          await stationRepo.updateStationStatus(stationId, 'OFFLINE');
         } catch (err) {
-          console.error(`Failed to update DB for station ${disconnectedStationId}:`, err.message);
+          console.error(`Failed DB status update for station ${stationId}:`, err.message);
         }
       }
     });
@@ -48,15 +61,22 @@ const initSocket = (server) => {
   return io;
 };
 
-// Method to push commands from Express controllers to Desktop Agents
-const sendCommandToStation = (stationId, command, payload = {}) => {
-  const socketId = connectedAgents.get(stationId);
-  if (!socketId || !io) {
-    return false; // Station offline or socket server not running
-  }
 
-  io.to(socketId).emit('STATION_COMMAND', { command, payload, timestamp: new Date() });
-  return true;
+const sendCommandToStation = (stationId, type, payload = {}, timeoutMs = 10000) => {
+  const socketId = agentRegistry.getSocketId(stationId);
+  if (!socketId || !io) return null;
+
+  const commandId = crypto.randomUUID();
+
+  const outboundMessage = {
+    commandId,
+    type,
+    payload,
+    timeoutMs
+  };
+
+  io.to(socketId).emit('STATION_COMMAND', outboundMessage);
+  return commandId;
 };
 
 module.exports = { initSocket, sendCommandToStation };
