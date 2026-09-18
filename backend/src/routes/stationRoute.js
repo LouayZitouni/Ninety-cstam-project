@@ -1,4 +1,6 @@
-// backend/src/routes/stationRoutes.js
+const { protect } = require('../middlewares/auth');
+const {isAdmin} = require('../middlewares/roleCheck');
+
 const express = require('express');
 const {
   createStation,
@@ -11,15 +13,16 @@ const {
 
 const router = express.Router();
 
-router.route('/')
-  .get(getStations)
-  .post(createStation);
 
-router.get('/search/gpu', getStationsByGpu);
+router.post('/', protect, isAdmin, createStation);
 
-router.get('/name/:name', getStationByName);
-router.get('/:id', getStationById);
+router.get('/',protect,isAdmin,getStations);
 
-router.patch('/:id/status', updateStatus);
+router.get('/search/gpu', protect,isAdmin, getStationsByGpu);
+
+router.get('/name/:name',protect,isAdmin, getStationByName);
+router.get('/:id',protect,isAdmin, getStationById);
+
+router.patch('/:id/status',protect,isAdmin, updateStatus);
 
 module.exports = router;
