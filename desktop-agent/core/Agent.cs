@@ -3,120 +3,280 @@ using DesktopAgent.Communication;
 
 namespace DesktopAgent.Core;
 
-
 public class Agent
 {
-    private readonly HeartbeatService _heartbeatService;
-    private readonly CancellationTokenSource _cancellationTokenSource;
     private readonly AgentConfig _config;
+    private readonly string _agentId;
+
+    private readonly AgentStateService _stateService;
+
     private readonly WebSocketClient _webSocketClient;
     private readonly MessageHandler _messageHandler;
+    private readonly HeartbeatService _heartbeatService;
+    private readonly TelemetryService _telemetryService;
 
-    public Agent(AgentConfig config)
-{
-    _config = config;
+    private readonly CancellationTokenSource
+        _cancellationTokenSource;
 
-    _webSocketClient = new WebSocketClient();
-
-    _messageHandler = new MessageHandler();
-
-    _cancellationTokenSource =
-        new CancellationTokenSource();
-
-    _heartbeatService = new HeartbeatService(
-        _webSocketClient,
-        _config.AgentId
-    );
-}
-    private async Task RegisterAsync()
-{
-    AgentMessage registration = new AgentMessage
+    public Agent(
+        AgentConfig config,
+        string agentId)
     {
-        Type = "register",
-        AgentId = _config.AgentId
-    };
+        _config = config;
+        _agentId = agentId;
 
-    string json =
-        JsonSerializer.Serialize(registration);
+        _stateService =
+            new AgentStateService();
 
-    await _webSocketClient.SendAsync(json);
+        _webSocketClient =
+            new WebSocketClient();
 
-    Console.WriteLine("Agent registered.");
-}
+        _messageHandler =
+            new MessageHandler(
+                _stateService
+            );
+
+        _heartbeatService =
+            new HeartbeatService(
+                _webSocketClient,
+                _agentId
+            );
+
+        _telemetryService =
+            new TelemetryService(
+                _webSocketClient,
+                _agentId,
+                _stateService
+            );
+
+        _cancellationTokenSource =
+            new CancellationTokenSource();
+    }
 
     public async Task StartAsync()
-{
-    Console.WriteLine("Desktop Agent started.");
-    Console.WriteLine($"Agent ID: {_config.AgentId}");
-
-    _ = _heartbeatService.StartAsync(
-        _cancellationTokenSource.Token
-    );
-
-    while (true)
     {
-        try
-        {
-            await _webSocketClient.ConnectAsync(
-                _config.ServerUrl
-            );
-
-            await RegisterAsync();
-
-            await ListenAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Connection error: {ex.Message}"
-            );
-        }
-
         Console.WriteLine(
-            "Connection lost. Reconnecting in 5 seconds..."
+            "================================"
         );
 
-        await Task.Delay(5000);
-    }
-}
-   private async Task ListenAsync()
-{
-    while (_webSocketClient.IsConnected)
-    {
-        string? message =
-            await _webSocketClient.ReceiveAsync();
+        Console.WriteLine(
+            "NINETY Desktop Agent"
+        );
 
-        if (message == null)
+        Console.WriteLine(
+            "================================"
+        );
+
+        Console.WriteLine(
+            $"Agent ID: {_agentId}"
+        );
+
+        Console.WriteLine(
+            $"Machine: {Environment.MachineName}"
+        );
+
+        _ = _heartbeatService.StartAsync(
+            _cancellationTokenSource.Token
+        );
+
+        _ = _telemetryService.StartAsync(
+            _cancellationTokenSource.Token
+        );
+
+        while (
+            !_cancellationTokenSource
+                .Token
+                .IsCancellationRequested)
         {
-            break;
-        }
+            try
+            {
+                await _webSocketClient.ConnectAsync(
+                    _config.ServerUrl
+                );
 
-        bool success =
-            _messageHandler.Handle(message);
+                await RegisterAsync();
 
-        AgentMessage? received =
-            JsonSerializer.Deserialize<AgentMessage>(
-                message,
-                new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                }
+                await ListenAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"Connection error: {ex.Message}"
+                );
+            }
+
+            if (
+                _cancellationTokenSource
+                    .Token
+                    .IsCancellationRequested)
+            {
+                break;
+            }
+
+            Console.WriteLine(
+                "Connection lost."
             );
 
-        if (received?.Type == "command")
-        {
-            AgentMessage result = new AgentMessage
+            Console.WriteLine(
+                "Reconnecting in 5 seconds..."
+            );
+
+            try
             {
-                Type = "command_result",
-                AgentId = _config.AgentId,
-                Command = received.Command,
-                Success = success
+                await Task.Delay(
+                    TimeSpan.FromSeconds(5),
+                    _cancellationTokenSource.Token
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+
+        await _webSocketClient.DisconnectAsync();
+
+        _telemetryService.Dispose();
+
+        Console.WriteLine(
+            "Desktop Agent stopped."
+        );
+    }
+
+    private async Task RegisterAsync()
+    {
+        AgentMessage registration =
+            new AgentMessage
+            {
+                Type = "register",
+
+                AgentId = _agentId,
+
+                Message =
+                    "Desktop agent connected",
+
+                Data = new
+                {
+                    machineName =
+                        Environment.MachineName,
+
+                    operatingSystem =
+                        Environment.OSVersion.ToString(),
+
+                    processorCount =
+                        Environment.ProcessorCount
+                }
             };
 
-            string json =
-                JsonSerializer.Serialize(result);
+        string json =
+            JsonSerializer.Serialize(
+                registration
+            );
 
-            await _webSocketClient.SendAsync(json);
+        await _webSocketClient.SendAsync(
+            json
+        );
+
+        Console.WriteLine(
+            "Agent registered with server."
+        );
+    }
+
+    private async Task ListenAsync()
+    {
+        while (_webSocketClient.IsConnected)
+        {
+            string? message =
+                await _webSocketClient.ReceiveAsync();
+
+            if (message == null)
+            {
+                break;
+            }
+
+            Console.WriteLine(
+                $"Received: {message}"
+            );
+
+            AgentMessage? received;
+
+            try
+            {
+                received =
+                    JsonSerializer.Deserialize<AgentMessage>(
+                        message,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }
+                    );
+            }
+            catch
+            {
+                Console.WriteLine(
+                    "Invalid message from server."
+                );
+
+                continue;
+            }
+
+            if (received == null)
+            {
+                continue;
+            }
+
+            bool success =
+                _messageHandler.Handle(
+                    message,
+                    _agentId
+                );
+
+            if (received.Type.Equals(
+                    "command",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                AgentMessage result =
+                    new AgentMessage
+                    {
+                        Type = "command_result",
+
+                        AgentId = _agentId,
+
+                        Command =
+                            received.Command,
+
+                        Success =
+                            success,
+
+                        RequestId =
+                            received.RequestId,
+
+                        SessionId =
+                            received.SessionId
+                    };
+
+                string json =
+                    JsonSerializer.Serialize(
+                        result
+                    );
+
+                await _webSocketClient.SendAsync(
+                    json
+                );
+            }
         }
+    }
+
+    public async Task StopAsync()
+    {
+        Console.WriteLine(
+            "Stopping Desktop Agent..."
+        );
+
+        _cancellationTokenSource.Cancel();
+
+        await _webSocketClient.DisconnectAsync();
+
+        _telemetryService.Dispose();
     }
 }

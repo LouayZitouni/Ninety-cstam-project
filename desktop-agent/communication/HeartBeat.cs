@@ -22,29 +22,41 @@ public class HeartbeatService
         {
             if (_webSocketClient.IsConnected)
             {
-                AgentMessage heartbeat = new AgentMessage
-                {
-                    Type = "heartbeat",
-                    AgentId = _agentId
-                };
-
-                string json =
-                    JsonSerializer.Serialize(heartbeat);
+                AgentMessage heartbeat =
+                    new AgentMessage
+                    {
+                        Type = "heartbeat",
+                        AgentId = _agentId
+                    };
 
                 try
                 {
-                    await _webSocketClient.SendAsync(json);
+                    string json =
+                        JsonSerializer.Serialize(
+                            heartbeat
+                        );
+
+                    await _webSocketClient.SendAsync(
+                        json
+                    );
                 }
                 catch
                 {
-                    // Connection loop will handle reconnection.
+                    // Reconnection is handled by Agent.
                 }
             }
 
-            await Task.Delay(
-                TimeSpan.FromSeconds(10),
-                cancellationToken
-            );
+            try
+            {
+                await Task.Delay(
+                    TimeSpan.FromSeconds(10),
+                    cancellationToken
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 }

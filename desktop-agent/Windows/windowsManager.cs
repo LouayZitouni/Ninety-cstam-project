@@ -8,40 +8,83 @@ public class WindowsManager
     [DllImport("user32.dll")]
     private static extern bool LockWorkStation();
 
-    public void Lock()
+    public bool Lock()
     {
-        Console.WriteLine("Locking Windows...");
+        try
+        {
+            Console.WriteLine(
+                "Locking Windows..."
+            );
 
-        LockWorkStation();
+            return LockWorkStation();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Lock failed: {ex.Message}"
+            );
+
+            return false;
+        }
     }
 
-    public void Shutdown()
+    public bool Shutdown()
     {
-        Console.WriteLine("Shutting down Windows...");
+        try
+        {
+            Console.WriteLine(
+                "Shutting down Windows..."
+            );
 
-        Process.Start(
-            new ProcessStartInfo
-            {
-                FileName = "shutdown.exe",
-                Arguments = "/s /t 0",
-                CreateNoWindow = true,
-                UseShellExecute = false
-            }
-        );
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = "shutdown.exe",
+                    Arguments = "/s /t 0",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                }
+            );
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Shutdown failed: {ex.Message}"
+            );
+
+            return false;
+        }
     }
 
-    public void Restart()
+    public bool Restart()
     {
-        Console.WriteLine("Restarting Windows...");
+        try
+        {
+            Console.WriteLine(
+                "Restarting Windows..."
+            );
 
-        Process.Start(
-            new ProcessStartInfo
-            {
-                FileName = "shutdown.exe",
-                Arguments = "/r /t 0",
-                CreateNoWindow = true,
-                UseShellExecute = false
-            }
-        );
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = "shutdown.exe",
+                    Arguments = "/r /t 0",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                }
+            );
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Restart failed: {ex.Message}"
+            );
+
+            return false;
+        }
     }
 }

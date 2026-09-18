@@ -7,14 +7,21 @@ public class WebSocketClient
 {
     private ClientWebSocket? _socket;
 
+    private readonly SemaphoreSlim _sendLock =
+        new SemaphoreSlim(1, 1);
+
     public bool IsConnected =>
         _socket?.State == WebSocketState.Open;
 
     public async Task ConnectAsync(string serverUrl)
     {
-        _socket = new ClientWebSocket();
+        await DisconnectAsync();
 
-        Uri serverUri = new Uri(serverUrl);
+        _socket =
+            new ClientWebSocket();
+
+        Uri serverUri =
+            new Uri(serverUrl);
 
         Console.WriteLine(
             $"Connecting to {serverUri}..."
@@ -25,7 +32,9 @@ public class WebSocketClient
             CancellationToken.None
         );
 
-        Console.WriteLine("Connected to server.");
+        Console.WriteLine(
+            "Connected to server."
+        );
     }
 
     public async Task SendAsync(string message)
@@ -37,15 +46,24 @@ public class WebSocketClient
             );
         }
 
-        byte[] messageBytes =
-            Encoding.UTF8.GetBytes(message);
+        await _sendLock.WaitAsync();
 
-        await _socket!.SendAsync(
-            new ArraySegment<byte>(messageBytes),
-            WebSocketMessageType.Text,
-            true,
-            CancellationToken.None
-        );
+        try
+        {
+            byte[] bytes =
+                Encoding.UTF8.GetBytes(message);
+
+            await _socket!.SendAsync(
+                new ArraySegment<byte>(bytes),
+                WebSocketMessageType.Text,
+                true,
+                CancellationToken.None
+            );
+        }
+        finally
+        {
+            _sendLock.Release();
+        }
     }
 
     public async Task<string?> ReceiveAsync()
@@ -55,38 +73,70 @@ public class WebSocketClient
             return null;
         }
 
-        byte[] buffer = new byte[4096];
+        byte[] buffer =
+            new byte[8192];
 
-        WebSocketReceiveResult result =
-            await _socket!.ReceiveAsync(
-                new ArraySegment<byte>(buffer),
-                CancellationToken.None
+        using MemoryStream messageStream =
+            new MemoryStream();
+
+        while (true)
+        {
+            WebSocketReceiveResult result =
+                await _socket!.ReceiveAsync(
+                    new ArraySegment<byte>(buffer),
+                    CancellationToken.None
+                );
+
+            if (result.MessageType ==
+                WebSocketMessageType.Close)
+            {
+                return null;
+            }
+
+            messageStream.Write(
+                buffer,
+                0,
+                result.Count
             );
 
-        if (result.MessageType ==
-            WebSocketMessageType.Close)
-        {
-            return null;
+            if (result.EndOfMessage)
+            {
+                break;
+            }
         }
 
         return Encoding.UTF8.GetString(
-            buffer,
-            0,
-            result.Count
+            messageStream.ToArray()
         );
     }
 
     public async Task DisconnectAsync()
     {
-        if (!IsConnected)
+        if (_socket == null)
         {
             return;
         }
 
-        await _socket!.CloseAsync(
-            WebSocketCloseStatus.NormalClosure,
-            "Agent shutting down",
-            CancellationToken.None
-        );
+        try
+        {
+            if (_socket.State == WebSocketState.Open ||
+                _socket.State == WebSocketState.CloseReceived)
+            {
+                await _socket.CloseAsync(
+                    WebSocketCloseStatus.NormalClosure,
+                    "Agent disconnecting",
+                    CancellationToken.None
+                );
+            }
+        }
+        catch
+        {
+            // Ignore disconnect errors.
+        }
+        finally
+        {
+            _socket.Dispose();
+            _socket = null;
+        }
     }
 }

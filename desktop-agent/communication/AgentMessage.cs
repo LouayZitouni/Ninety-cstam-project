@@ -13,4 +13,11 @@ public class AgentMessage
     public bool? Success { get; set; }
 
     public object? Data { get; set; }
+
+    public string? RequestId { get; set; }
+
+    public string? SessionId { get; set; }
+    public string? Event { get; set; }
+
+    public string? Severity { get; set; }
 }

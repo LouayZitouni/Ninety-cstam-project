@@ -1,3 +1,4 @@
+using DesktopAgent.Core;
 using DesktopAgent.Windows;
 
 namespace DesktopAgent.Commands;
@@ -5,36 +6,55 @@ namespace DesktopAgent.Commands;
 public class CommandExecutor
 {
     private readonly WindowsManager _windowsManager;
+    private readonly AgentStateService _stateService;
 
-    public CommandExecutor()
+    public CommandExecutor(
+        AgentStateService stateService)
     {
-        _windowsManager = new WindowsManager();
+        _windowsManager =
+            new WindowsManager();
+
+        _stateService =
+            stateService;
     }
 
     public bool Execute(Command command)
     {
-        if (string.IsNullOrWhiteSpace(command.CommandName))
+        if (string.IsNullOrWhiteSpace(
+            command.CommandName))
         {
             return false;
         }
 
-        switch (command.CommandName.ToLower())
+        string commandName =
+            command.CommandName
+                .Trim()
+                .ToLowerInvariant();
+
+        switch (commandName)
         {
+            case "lock":
+            {
+                bool success =
+                    _windowsManager.Lock();
+
+                if (success)
+                {
+                    _stateService.SetLocked(true);
+                }
+
+                return success;
+            }
+
             case "shutdown":
-                _windowsManager.Shutdown();
-                return true;
+                return _windowsManager.Shutdown();
 
             case "restart":
-                _windowsManager.Restart();
-                return true;
-
-            case "lock":
-                _windowsManager.Lock();
-                return true;
+                return _windowsManager.Restart();
 
             default:
                 Console.WriteLine(
-                    $"Unknown command: {command.CommandName}"
+                    $"Rejected unknown command: {commandName}"
                 );
 
                 return false;

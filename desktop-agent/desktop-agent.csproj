@@ -12,4 +12,8 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 </ItemGroup>
+<ItemGroup>
+  <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+  <PackageReference Include="System.Management" Version="10.0.12" />
+</ItemGroup>
 </Project>
