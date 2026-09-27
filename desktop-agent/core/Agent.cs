@@ -1,282 +1,187 @@
-using System.Text.Json;
+using System;
+using System.IO;
+using System.Net.NetworkInformation;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using DesktopAgent.Communication;
 
-namespace DesktopAgent.Core;
-
-public class Agent
+namespace DesktopAgent.Core
 {
-    private readonly AgentConfig _config;
-    private readonly string _agentId;
-
-    private readonly AgentStateService _stateService;
-
-    private readonly WebSocketClient _webSocketClient;
-    private readonly MessageHandler _messageHandler;
-    private readonly HeartbeatService _heartbeatService;
-    private readonly TelemetryService _telemetryService;
-
-    private readonly CancellationTokenSource
-        _cancellationTokenSource;
-
-    public Agent(
-        AgentConfig config,
-        string agentId)
+    public class Agent
     {
-        _config = config;
-        _agentId = agentId;
+        private readonly AgentIdentityService _identityService; 
+        private readonly AgentStateService _stateService;
+        private readonly SocketIOAgentClient _client;
+        private readonly MessageHandler _messageHandler;
 
-        _stateService =
-            new AgentStateService();
+        private readonly string _serverUrl;
+        private readonly string? _customAgentId;
+        private CancellationTokenSource? _cts;
 
-        _webSocketClient =
-            new WebSocketClient();
+        public Agent() : this("http://127.0.0.1:5000", null) { }
 
-        _messageHandler =
-            new MessageHandler(
-                _stateService
-            );
+        public Agent(string serverUrl) : this(serverUrl, null) { }
 
-        _heartbeatService =
-            new HeartbeatService(
-                _webSocketClient,
-                _agentId
-            );
-
-        _telemetryService =
-            new TelemetryService(
-                _webSocketClient,
-                _agentId,
-                _stateService
-            );
-
-        _cancellationTokenSource =
-            new CancellationTokenSource();
-    }
-
-    public async Task StartAsync()
-    {
-        Console.WriteLine(
-            "================================"
-        );
-
-        Console.WriteLine(
-            "NINETY Desktop Agent"
-        );
-
-        Console.WriteLine(
-            "================================"
-        );
-
-        Console.WriteLine(
-            $"Agent ID: {_agentId}"
-        );
-
-        Console.WriteLine(
-            $"Machine: {Environment.MachineName}"
-        );
-
-        _ = _heartbeatService.StartAsync(
-            _cancellationTokenSource.Token
-        );
-
-        _ = _telemetryService.StartAsync(
-            _cancellationTokenSource.Token
-        );
-
-        while (
-            !_cancellationTokenSource
-                .Token
-                .IsCancellationRequested)
+        public Agent(string serverUrl, string? customAgentId)
         {
-            try
-            {
-                await _webSocketClient.ConnectAsync(
-                    _config.ServerUrl
-                );
+            _serverUrl = NormalizeSocketUrl(serverUrl);
+            _customAgentId = customAgentId;
 
-                await RegisterAsync();
-
-                await ListenAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(
-                    $"Connection error: {ex.Message}"
-                );
-            }
-
-            if (
-                _cancellationTokenSource
-                    .Token
-                    .IsCancellationRequested)
-            {
-                break;
-            }
-
-            Console.WriteLine(
-                "Connection lost."
-            );
-
-            Console.WriteLine(
-                "Reconnecting in 5 seconds..."
-            );
-
-            try
-            {
-                await Task.Delay(
-                    TimeSpan.FromSeconds(5),
-                    _cancellationTokenSource.Token
-                );
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
+            _identityService = new AgentIdentityService();
+            _stateService = new AgentStateService();
+            _client = new SocketIOAgentClient();
+            _messageHandler = new MessageHandler(_stateService);
         }
 
-        await _webSocketClient.DisconnectAsync();
+        public Agent(AgentConfig config) : this(config, null) { }
 
-        _telemetryService.Dispose();
+        public Agent(AgentConfig config, string? customAgentId)
+        {
+            ExtractFromConfig(config, out string? extractedUrl, out string? extractedId);
 
-        Console.WriteLine(
-            "Desktop Agent stopped."
-        );
-    }
+            _serverUrl = NormalizeSocketUrl(extractedUrl);
+            _customAgentId = !string.IsNullOrWhiteSpace(customAgentId) ? customAgentId : extractedId;
 
-    private async Task RegisterAsync()
-    {
-        AgentMessage registration =
-            new AgentMessage
+            _identityService = new AgentIdentityService();
+            _stateService = new AgentStateService();
+            _client = new SocketIOAgentClient();
+            _messageHandler = new MessageHandler(_stateService);
+        }
+
+        public async Task StartAsync(string? overrideServerUrl = null)
+        {
+            _cts = new CancellationTokenSource();
+
+            // Intercept Ctrl+C to trigger cancellation token across all background tasks
+            Console.CancelKeyPress += (sender, e) =>
             {
-                Type = "register",
-
-                AgentId = _agentId,
-
-                Message =
-                    "Desktop agent connected",
-
-                Data = new
-                {
-                    machineName =
-                        Environment.MachineName,
-
-                    operatingSystem =
-                        Environment.OSVersion.ToString(),
-
-                    processorCount =
-                        Environment.ProcessorCount
-                }
+                e.Cancel = true; // Prevent instant process kill to allow clean shutdown
+                Console.WriteLine("\n🛑 Shutdown signal received (Ctrl+C)...");
+                _cts?.Cancel();
             };
 
-        string json =
-            JsonSerializer.Serialize(
-                registration
-            );
+            string rawId = !string.IsNullOrWhiteSpace(_customAgentId)
+                ? _customAgentId
+                : await _identityService.GetOrCreateAgentIdAsync();
 
-        await _webSocketClient.SendAsync(
-            json
-        );
+            string agentId = FormatToGuid(rawId);
+            string machineName = Environment.MachineName;
+            string targetUrl = !string.IsNullOrWhiteSpace(overrideServerUrl) 
+                ? NormalizeSocketUrl(overrideServerUrl) 
+                : _serverUrl;
 
-        Console.WriteLine(
-            "Agent registered with server."
-        );
-    }
+            var telemetryService = new TelemetryService(_client, agentId, _stateService);
 
-    private async Task ListenAsync()
-    {
-        while (_webSocketClient.IsConnected)
-        {
-            string? message =
-                await _webSocketClient.ReceiveAsync();
-
-            if (message == null)
+            _client.OnCommandReceived += async (jsonStr, jsonElement) =>
             {
-                break;
-            }
+                await _messageHandler.HandleCommandAsync(jsonElement, agentId, _client);
+            };
 
-            Console.WriteLine(
-                $"Received: {message}"
-            );
+            Console.WriteLine("=================================");
+            Console.WriteLine("NINETY Desktop Agent");
+            Console.WriteLine("=================================");
+            Console.WriteLine($"Agent ID: {agentId}");
+            Console.WriteLine($"Machine:  {machineName}");
+            Console.WriteLine($"Connecting to {targetUrl}...");
 
-            AgentMessage? received;
+            await _client.ConnectAsync(targetUrl, agentId, machineName);
+
+            // Pass the token to the background telemetry task so it stops on Ctrl+C
+            _ = Task.Run(() => telemetryService.StartAsync(_cts.Token), _cts.Token);
+
+            Console.WriteLine("Agent registered with server. Press Ctrl+C to exit.");
 
             try
             {
-                received =
-                    JsonSerializer.Deserialize<AgentMessage>(
-                        message,
-                        new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        }
-                    );
+                await Task.Delay(-1, _cts.Token);
             }
-            catch
+            catch (TaskCanceledException)
             {
-                Console.WriteLine(
-                    "Invalid message from server."
-                );
-
-                continue;
+                // Expected exception when Ctrl+C triggers _cts.Cancel()
             }
-
-            if (received == null)
+            finally
             {
-                continue;
-            }
-
-            bool success =
-                _messageHandler.Handle(
-                    message,
-                    _agentId
-                );
-
-            if (received.Type.Equals(
-                    "command",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                AgentMessage result =
-                    new AgentMessage
-                    {
-                        Type = "command_result",
-
-                        AgentId = _agentId,
-
-                        Command =
-                            received.Command,
-
-                        Success =
-                            success,
-
-                        RequestId =
-                            received.RequestId,
-
-                        SessionId =
-                            received.SessionId
-                    };
-
-                string json =
-                    JsonSerializer.Serialize(
-                        result
-                    );
-
-                await _webSocketClient.SendAsync(
-                    json
-                );
+                await StopAsync();
             }
         }
-    }
 
-    public async Task StopAsync()
-    {
-        Console.WriteLine(
-            "Stopping Desktop Agent..."
-        );
+        public async Task StopAsync()
+        {
+            if (_cts != null && !_cts.IsCancellationRequested)
+            {
+                _cts.Cancel();
+            }
 
-        _cancellationTokenSource.Cancel();
+            Console.WriteLine("Stopping Desktop Agent...");
+            await _client.DisconnectAsync();
+            Console.WriteLine("Desktop Agent stopped successfully.");
+        }
 
-        await _webSocketClient.DisconnectAsync();
+        private static string NormalizeSocketUrl(string? rawUrl)
+        {
+            if (string.IsNullOrWhiteSpace(rawUrl)) return "http://127.0.0.1:5000";
 
-        _telemetryService.Dispose();
+            string url = rawUrl.Replace("ws://", "http://").Replace("wss://", "https://");
+
+            int socketPathIdx = url.IndexOf("/socket.io", StringComparison.OrdinalIgnoreCase);
+            if (socketPathIdx != -1)
+            {
+                url = url.Substring(0, socketPathIdx);
+            }
+
+            return url.TrimEnd('/');
+        }
+
+        private string FormatToGuid(string rawId)
+        {
+            if (string.IsNullOrWhiteSpace(rawId)) return Guid.NewGuid().ToString();
+
+            string hexOnly = rawId.Replace("PC-", "").Trim();
+
+            if (Guid.TryParseExact(hexOnly, "N", out Guid validGuid) || Guid.TryParse(hexOnly, out validGuid))
+            {
+                return validGuid.ToString();
+            }
+
+            using (MD5 md5 = MD5.Create())
+            {
+                byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(rawId));
+                return new Guid(hash).ToString();
+            }
+        }
+
+        private static void ExtractFromConfig(AgentConfig config, out string? serverUrl, out string? customAgentId)
+        {
+            serverUrl = null;
+            customAgentId = null;
+
+            if (config == null) return;
+
+            Type type = config.GetType();
+
+            var urlProp = type.GetProperty("ServerUrl")
+                       ?? type.GetProperty("WebSocketUrl")
+                       ?? type.GetProperty("ServerUri")
+                       ?? type.GetProperty("Url");
+
+            if (urlProp != null && urlProp.CanRead)
+            {
+                serverUrl = urlProp.GetValue(config)?.ToString();
+            }
+
+            var idProp = type.GetProperty("AgentId")
+                      ?? type.GetProperty("StationId")
+                      ?? type.GetProperty("DeviceId")
+                      ?? type.GetProperty("HardwareId")
+                      ?? type.GetProperty("Id");
+
+            if (idProp != null && idProp.CanRead)
+            {
+                customAgentId = idProp.GetValue(config)?.ToString();
+            }
+        }
     }
 }
