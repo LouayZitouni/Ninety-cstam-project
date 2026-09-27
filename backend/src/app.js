@@ -3,6 +3,7 @@ const stationRoutes = require('./routes/stationRoute');
 const errorHandler = require('./middlewares/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const alertRoutes = require('./routes/alertRoutes');
 
 const app = express();
 
@@ -18,10 +19,12 @@ app.get('/health', (req , res) => {
 
 app.use('/api/stations', stationRoutes);
 
-app.use(errorHandler);
-
 app.use('/api/auth', authRoutes);
 
 app.use('/socket' , adminRoutes);
+
+app.use('/api/alerts', alertRoutes);
+
+app.use(errorHandler);
 
 module.exports = app;

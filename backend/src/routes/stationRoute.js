@@ -11,6 +11,8 @@ const {
   updateStatus
 } = require('../controllers/stationController');
 
+const { sendRemoteCommand } = require('../controllers/adminController');
+
 const router = express.Router();
 
 
@@ -24,5 +26,6 @@ router.get('/name/:name',protect,isAdmin, getStationByName);
 router.get('/:id',protect,isAdmin, getStationById);
 
 router.patch('/:id/status',protect,isAdmin, updateStatus);
+router.post('/:stationId/command', sendRemoteCommand);
 
 module.exports = router;
