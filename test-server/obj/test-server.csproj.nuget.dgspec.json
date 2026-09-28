@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Acer\\Desktop\\Ninety\\test-server\\test-server.csproj": {}
+    "C:\\Users\\Acer\\OneDrive\\Desktop\\Ninety\\test-server\\test-server.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Acer\\Desktop\\Ninety\\test-server\\test-server.csproj": {
+    "C:\\Users\\Acer\\OneDrive\\Desktop\\Ninety\\test-server\\test-server.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Acer\\Desktop\\Ninety\\test-server\\test-server.csproj",
+        "projectUniqueName": "C:\\Users\\Acer\\OneDrive\\Desktop\\Ninety\\test-server\\test-server.csproj",
         "projectName": "test-server",
-        "projectPath": "C:\\Users\\Acer\\Desktop\\Ninety\\test-server\\test-server.csproj",
+        "projectPath": "C:\\Users\\Acer\\OneDrive\\Desktop\\Ninety\\test-server\\test-server.csproj",
         "packagesPath": "C:\\Users\\Acer\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Acer\\Desktop\\Ninety\\test-server\\obj\\",
+        "outputPath": "C:\\Users\\Acer\\OneDrive\\Desktop\\Ninety\\test-server\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Acer\\AppData\\Roaming\\NuGet\\NuGet.Config"
