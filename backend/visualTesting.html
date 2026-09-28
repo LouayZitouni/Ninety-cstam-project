@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ninety - Centralized Testing Dashboard</title>
+  <style>
+    :root {
+      --bg-dark: #0f111a;
+      --card-bg: #1a1d2e;
+      --card-border: #2a2e45;
+      --text-main: #d0d4e6;
+      --text-muted: #7e85a3;
+      --accent: #5b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --input-bg: #111322;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Top Navigation Bar */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      border-bottom: 2px solid var(--card-border);
+      padding-bottom: 12px;
+    }
+
+    .tab-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 10px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      border-color: var(--accent);
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    /* Page Sections */
+    .page-section {
+      display: none;
+    }
+
+    .page-section.active {
+      display: block;
+    }
+
+    .header-bar {
+      margin-bottom: 16px;
+    }
+
+    .header-bar h2 {
+      font-size: 1.4rem;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* Cards & Inputs */
+    .control-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+    }
+
+    .card-title {
+      width: 100%;
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .input-group label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-group input, .input-group select {
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 6px;
+      outline: none;
+      font-size: 0.9rem;
+    }
+
+    .input-group input:focus, .input-group select:focus {
+      border-color: var(--accent);
+    }
+
+    .action-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #ffffff;
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #000000;
+      font-weight: bold;
+    }
+
+    /* Telemetry Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .metric-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+
+    .metric-value {
+      color: var(--accent);
+      font-family: monospace;
+      font-size: 1.1rem;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background-color: var(--input-bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background-color: var(--accent);
+      transition: width 0.4s ease, background-color 0.4s ease;
+    }
+
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .status-badge.live { background-color: var(--success); color: #000; }
+    .status-badge.stopped { background-color: var(--danger); color: #fff; }
+
+    .status-pill {
+      font-weight: bold;
+      font-size: 1rem;
+      margin-top: 8px;
+    }
+    .status-pill.green { color: var(--success); }
+    .status-pill.red { color: var(--danger); }
+    .status-pill.blue { color: var(--accent); }
+
+    /* Execution Log Console */
+    .console-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 10px;
+    }
+
+    .console-header {
+      font-weight: bold;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #consoleOutput {
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      max-height: 240px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: #34d399;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="telemetry" onclick="switchTab('telemetry')">🖥️ Real-Time Telemetry</button>
+    <button class="tab-btn" data-tab="auth" onclick="switchTab('auth')">🔐 Auth Suite</button>
+    <button class="tab-btn" data-tab="stations" onclick="switchTab('stations')">🕹️ Station Management</button>
+    <button class="tab-btn" data-tab="reservations" onclick="switchTab('reservations')">📅 Reservations</button>
+  </nav>
+
+  <!-- TAB 1: REAL-TIME TELEMETRY -->
+  <div id="telemetry" class="page-section active">
+    <div class="header-bar">
+      <h2>🖥️ Station Real-Time Telemetry</h2>
+      <p class="subtitle">Polls live hardware metrics cached in Express RAM from C# desktop agent</p>
+    </div>
+
+    <div class="control-card">
+      <div class="input-group">
+        <label for="telemetryStationId">Station UUID:</label>
+        <input type="text" id="telemetryStationId" placeholder="e.g. a3960912-e5a6-4348-8272-465daee04fda" value="a3960912-e5a6-4348-8272-465daee04fda">
+      </div>
+      <div class="action-group">
+        <button id="btnPoll" class="btn-primary" onclick="toggleTelemetryPolling()">▶ Start Live Stream</button>
+        <span id="pollStatus" class="status-badge stopped">Offline</span>
+        <span class="subtitle">Updated: <strong id="valUpdatedAt">--:--:--</strong></span>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>⚙️ CPU Usage</span>
+          <span id="valCpu" class="metric-value">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div id="barCpu" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>🧠 Memory (RAM)</span>
+          <span id="valRam" class="metric-value">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div id="barRam" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>🎮 GPU Load</span>
+          <span id="valGpu" class="metric-value">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div id="barGpu" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>🔥 GPU Temp</span>
+          <span id="valGpuTemp" class="metric-value">0°C</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div id="barGpuTemp" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <span class="subtitle">Security Lock Status</span>
+        <div id="valLockStatus" class="status-pill green">UNLOCKED 🔓</div>
+      </div>
+
+      <div class="metric-card">
+        <span class="subtitle">Session State</span>
+        <div id="valSessionStatus" class="status-pill blue">IDLE</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: AUTH SUITE WITH TOKEN INPUT -->
+  <div id="auth" class="page-section">
+    <div class="header-bar">
+      <h2>🔐 Authentication Suite</h2>
+      <p class="subtitle">Configure JWT Bearer Token and test user authentication endpoints</p>
+    </div>
+
+    <!-- Token Configuration Card -->
+    <div class="control-card">
+      <div class="card-title">🔑 Bearer Token Management</div>
+      <div class="input-group" style="flex: 2;">
+        <label for="jwtToken">JWT Bearer Token:</label>
+        <input type="text" id="jwtToken" placeholder="Paste your Bearer token here (eyJhbGciOi...)" onchange="saveToken()">
+      </div>
+      <div class="action-group">
+        <button class="btn-primary" onclick="saveToken()">💾 Save Token</button>
+        <button class="btn-primary btn-danger" onclick="clearToken()">🗑️ Clear</button>
+      </div>
+    </div>
+
+    <!-- Login Form Card -->
+    <div class="control-card">
+      <div class="card-title">👤 User Login Credentials</div>
+      <div class="input-group">
+        <label for="authEmail">Email</label>
+        <input type="email" id="authEmail" placeholder="admin@ninety.com" value="admin@ninety.com">
+      </div>
+      <div class="input-group">
+        <label for="authPassword">Password</label>
+        <input type="password" id="authPassword" placeholder="••••••••" value="password123">
+      </div>
+      <div class="action-group">
+        <button class="btn-primary btn-success" onclick="executeAuthLogin()">Login & Auto-Set Token</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: STATION MANAGEMENT -->
+  <div id="stations" class="page-section">
+    <div class="header-bar">
+      <h2>🕹️ Station Management</h2>
+      <p class="subtitle">Query and update gaming station states and metadata</p>
+    </div>
+
+    <div class="control-card">
+      <div class="card-title">🔍 Query Stations</div>
+      <button class="btn-primary" onclick="fetchAllStations()">Fetch All Registered Stations</button>
+    </div>
+
+    <div class="control-card">
+      <div class="card-title">⚡ Change Station Status</div>
+      <div class="input-group">
+        <label for="targetStationId">Station ID:</label>
+        <input type="text" id="targetStationId" placeholder="e.g. a3960912-e5a6-4348-8272-465daee04fda" value="a3960912-e5a6-4348-8272-465daee04fda">
+      </div>
+      <div class="input-group">
+        <label for="newStationStatus">New Status:</label>
+        <select id="newStationStatus">
+          <option value="AVAILABLE">AVAILABLE</option>
+          <option value="RESERVED">RESERVED</option>
+          <option value="OCCUPIED">OCCUPIED</option>
+          <option value="MAINTENANCE">MAINTENANCE</option>
+          <option value="OFFLINE">OFFLINE</option>
+        </select>
+      </div>
+      <div class="action-group">
+        <button class="btn-primary" onclick="updateStationStatus()">Update Station Status</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: RESERVATIONS -->
+  <div id="reservations" class="page-section">
+    <div class="header-bar">
+      <h2>📅 Reservation Workflows</h2>
+      <p class="subtitle">Fetch active reservations or create new booking sessions</p>
+    </div>
+
+    <div class="control-card">
+      <div class="card-title">📋 Query Active Bookings</div>
+      <button class="btn-primary" onclick="fetchActiveReservations()">Fetch Active Reservations</button>
+    </div>
+
+    <div class="control-card">
+      <div class="card-title">➕ Create New Reservation</div>
+      <div class="input-group">
+        <label for="resStationId">Station ID:</label>
+        <input type="text" id="resStationId" placeholder="Station UUID" value="a3960912-e5a6-4348-8272-465daee04fda">
+      </div>
+      <div class="input-group">
+        <label for="resUserId">User ID / Email:</label>
+        <input type="text" id="resUserId" placeholder="User ID" value="32ad051c-c0f7-4b0f-b652-46ba644db513">
+      </div>
+      <div class="input-group">
+        <label for="resStartTime">Start Time:</label>
+        <input type="datetime-local" id="resStartTime">
+      </div>
+      <div class="input-group">
+        <label for="resEndTime">End Time:</label>
+        <input type="datetime-local" id="resEndTime">
+      </div>
+      <div class="action-group">
+        <button class="btn-primary btn-success" onclick="createReservation()">Create Reservation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Execution Console Log -->
+  <div class="console-card">
+    <div class="console-header">
+      <span>📜 Execution Log</span>
+      <button onclick="clearConsole()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">Clear Log</button>
+    </div>
+    <div id="consoleOutput">Dashboard initialized. Token loaded from localStorage.</div>
+  </div>
+
+  <script>
+    let telemetryInterval = null;
+
+    // Load saved JWT token & set default reservation dates on startup
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedToken = localStorage.getItem('ninety_jwt_token');
+      if (savedToken) {
+        document.getElementById('jwtToken').value = savedToken;
+        logConsole('🔑 Restored saved JWT Bearer Token from localStorage.');
+      }
+
+      // Default start time now, end time +2 hours
+      const now = new Date();
+      const inTwoHours = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      document.getElementById('resStartTime').value = now.toISOString().slice(0, 16);
+      document.getElementById('resEndTime').value = inTwoHours.toISOString().slice(0, 16);
+    });
+
+    // Helper for Auth Headers
+    function getHeaders() {
+      const token = document.getElementById('jwtToken').value.trim();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      return headers;
+    }
+
+    function saveToken() {
+      const token = document.getElementById('jwtToken').value.trim();
+      localStorage.setItem('ninety_jwt_token', token);
+      logConsole('💾 Bearer Token saved to localStorage.');
+    }
+
+    function clearToken() {
+      document.getElementById('jwtToken').value = '';
+      localStorage.removeItem('ninety_jwt_token');
+      logConsole('🗑️ Token cleared.');
+    }
+
+    // Tab Switching Logic
+    function switchTab(tabId) {
+      document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+      const target = document.getElementById(tabId);
+      if (target) target.classList.add('active');
+
+      const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      logConsole(`Switched to tab: ${tabId.toUpperCase()}`);
+    }
+
+    // Real-Time Telemetry Polling
+    async function fetchStationTelemetry() {
+      const stationId = document.getElementById('telemetryStationId').value.trim();
+      if (!stationId) {
+        logConsole('⚠️ Station ID is missing!');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/stations/${stationId}/telemetry`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          renderTelemetryData(result.data);
+          logConsole(`[${new Date().toLocaleTimeString()}] Telemetry updated for station ${stationId}`);
+        } else {
+          logConsole(`⚠️ ${result.message || 'No telemetry found in server RAM'}`);
+          document.getElementById('valUpdatedAt').innerText = 'No Data';
+        }
+      } catch (err) {
+        logConsole(`❌ Telemetry request failed: ${err.message}`);
+      }
+    }
+
+    function toggleTelemetryPolling() {
+      const btn = document.getElementById('btnPoll');
+      const status = document.getElementById('pollStatus');
+
+      if (telemetryInterval) {
+        clearInterval(telemetryInterval);
+        telemetryInterval = null;
+        btn.innerText = '▶ Start Live Stream';
+        btn.classList.remove('btn-danger');
+        status.innerText = 'Offline';
+        status.className = 'status-badge stopped';
+        logConsole('⏹ Stopped live telemetry stream.');
+      } else {
+        fetchStationTelemetry();
+        telemetryInterval = setInterval(fetchStationTelemetry, 2000);
+        btn.innerText = '⏹ Stop Live Stream';
+        btn.classList.add('btn-danger');
+        status.innerText = 'LIVE (2s)';
+        status.className = 'status-badge live';
+        logConsole('▶ Started live telemetry stream (2s polling).');
+      }
+    }
+
+    function renderTelemetryData(data) {
+      const cpu = Number(data.cpuUsage ?? 0);
+      const memory = Number(data.memoryUsage ?? 0);
+      const gpu = Number(data.gpuUsage ?? 0);
+      const gpuTemp = Number(data.gpuTemperature ?? 0);
+
+      // CPU
+      document.getElementById('valCpu').innerText = `${cpu.toFixed(1)}%`;
+      const barCpu = document.getElementById('barCpu');
+      barCpu.style.width = `${Math.min(100, cpu)}%`;
+      barCpu.style.backgroundColor = cpu > 85 ? 'var(--danger)' : (cpu > 60 ? 'var(--warning)' : 'var(--accent)');
+
+      // RAM
+      document.getElementById('valRam').innerText = `${memory.toFixed(1)}%`;
+      document.getElementById('barRam').style.width = `${Math.min(100, memory)}%`;
+
+      // GPU
+      document.getElementById('valGpu').innerText = `${gpu.toFixed(1)}%`;
+      document.getElementById('barGpu').style.width = `${Math.min(100, gpu)}%`;
+
+      // GPU Temp
+      document.getElementById('valGpuTemp').innerText = gpuTemp ? `${gpuTemp.toFixed(1)}°C` : 'N/A';
+      const barGpuTemp = document.getElementById('barGpuTemp');
+      barGpuTemp.style.width = `${Math.min(100, (gpuTemp / 100) * 100)}%`;
+      barGpuTemp.style.backgroundColor = gpuTemp > 80 ? 'var(--danger)' : (gpuTemp > 70 ? 'var(--warning)' : 'var(--success)');
+
+      // Lock & Session Status
+      const lockEl = document.getElementById('valLockStatus');
+      lockEl.innerText = data.isLocked ? 'LOCKED 🔒' : 'UNLOCKED 🔓';
+      lockEl.className = `status-pill ${data.isLocked ? 'red' : 'green'}`;
+
+      const sessionEl = document.getElementById('valSessionStatus');
+      sessionEl.innerText = data.inSession ? `ACTIVE (${data.sessionId || 'Session'})` : 'IDLE';
+      sessionEl.className = `status-pill ${data.inSession ? 'green' : 'blue'}`;
+
+      // Updated At Timestamp
+      document.getElementById('valUpdatedAt').innerText = data.updatedAt 
+        ? new Date(data.updatedAt).toLocaleTimeString() 
+        : new Date().toLocaleTimeString();
+    }
+
+    // Auth Testing
+    async function executeAuthLogin() {
+      const email = document.getElementById('authEmail').value;
+      const password = document.getElementById('authPassword').value;
+
+      logConsole(`Executing auth login for ${email}...`);
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (data.token) {
+          document.getElementById('jwtToken').value = data.token;
+          saveToken();
+          logConsole('✅ Login successful! Token auto-saved.');
+        } else {
+          logConsole(`❌ Login response: ${JSON.stringify(data, null, 2)}`);
+        }
+      } catch (err) {
+        logConsole(`❌ Auth request failed: ${err.message}`);
+      }
+    }
+
+    // Station Management Testing
+    async function fetchAllStations() {
+      logConsole('Fetching all registered stations...');
+      try {
+        const res = await fetch('/api/stations', { headers: getHeaders() });
+        const data = await res.json();
+        logConsole(`Result: ${JSON.stringify(data, null, 2)}`);
+      } catch (err) {
+        logConsole(`❌ Error: ${err.message}`);
+      }
+    }
+
+    async function updateStationStatus() {
+      const stationId = document.getElementById('targetStationId').value.trim();
+      const status = document.getElementById('newStationStatus').value;
+
+      if (!stationId) {
+        logConsole('⚠️ Station ID required to update status.');
+        return;
+      }
+
+      logConsole(`Updating status of station ${stationId} to ${status}...`);
+      try {
+        const res = await fetch(`/api/stations/${stationId}/status`, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        logConsole(`Update Result: ${JSON.stringify(data, null, 2)}`);
+      } catch (err) {
+        logConsole(`❌ Error updating station status: ${err.message}`);
+      }
+    }
+
+    // Reservation Workflows Testing
+    async function fetchActiveReservations() {
+      logConsole('Fetching active reservations...');
+      try {
+        const res = await fetch('/api/reservations/active', { headers: getHeaders() });
+        const data = await res.json();
+        logConsole(`Result: ${JSON.stringify(data, null, 2)}`);
+      } catch (err) {
+        logConsole(`❌ Error: ${err.message}`);
+      }
+    }
+
+    async function createReservation() {
+      const stationId = document.getElementById('resStationId').value.trim();
+      const userId = document.getElementById('resUserId').value.trim();
+      const startTime = document.getElementById('resStartTime').value;
+      const endTime = document.getElementById('resEndTime').value;
+
+      if (!stationId || !userId) {
+        logConsole('⚠️ Station ID and User ID are required to create a reservation.');
+        return;
+      }
+
+      logConsole(`Creating reservation for station ${stationId}...`);
+      try {
+        const res = await fetch('/api/reservations', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            stationId,
+            userId,
+            startTime: new Date(startTime).toISOString(),
+            endTime: new Date(endTime).toISOString()
+          })
+        });
+        const data = await res.json();
+        logConsole(`Reservation Creation Result: ${JSON.stringify(data, null, 2)}`);
+      } catch (err) {
+        logConsole(`❌ Error creating reservation: ${err.message}`);
+      }
+    }
+
+    function logConsole(msg) {
+      const consoleEl = document.getElementById('consoleOutput');
+      consoleEl.innerText = `${msg}\n` + consoleEl.innerText;
+    }
+
+    function clearConsole() {
+      document.getElementById('consoleOutput').innerText = '';
+    }
+  </script>
+</body>
+</html>

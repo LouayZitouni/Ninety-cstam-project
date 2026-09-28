@@ -117,6 +117,10 @@ async function upsertStation({ stationId, machineName, tier = 'STANDARD' }) {
   ]);
 }
 
+async function reserveStationStatus(stationId,status){
+  return await updateStationStatus(stationId,status);
+}
+
 module.exports = {
   createStation,
   findStationById,
@@ -124,5 +128,6 @@ module.exports = {
   findStationsByGpu,
   getAllStations,
   updateStationStatus,
-  upsertStation
+  upsertStation,
+  reserveStationStatus
 };

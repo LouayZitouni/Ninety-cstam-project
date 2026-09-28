@@ -8,10 +8,12 @@ const {
   getStationById,
   getStationByName,
   getStationsByGpu,
-  updateStatus
+  updateStatus,
+  reserveStationStatus
 } = require('../controllers/stationController');
 
 const { sendRemoteCommand } = require('../controllers/adminController');
+const { getStationTelemetry } = require('../controllers/stationController');
 
 const router = express.Router();
 
@@ -26,6 +28,8 @@ router.get('/name/:name',protect,isAdmin, getStationByName);
 router.get('/:id',protect,isAdmin, getStationById);
 
 router.patch('/:id/status',protect,isAdmin, updateStatus);
-router.post('/:stationId/command', sendRemoteCommand);
+router.post('/:stationId/command',protect,isAdmin,sendRemoteCommand);
+router.post('/reserve/:stationId',protect,reserveStationStatus);
+router.get('/:id/telemetry',protect,isAdmin, getStationTelemetry);
 
 module.exports = router;

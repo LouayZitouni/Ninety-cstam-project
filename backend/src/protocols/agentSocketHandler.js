@@ -1,3 +1,4 @@
+const latestTelemetryCache = new Map();
 const { Server } = require('socket.io');
 const crypto = require('crypto');
 const stationRepo = require('../infrastructure/database/stationRepository');
@@ -10,6 +11,7 @@ const {
 } = require('../protocols/adminSocketHandler');
 
 let io;
+
 
 const initSocket = (server) => {
   io = new Server(server, { cors: { origin: '*' } });
@@ -54,6 +56,12 @@ const initSocket = (server) => {
 
     socket.on('TELEMETRY', (data) => {
       console.log('📥 Backend received telemetry from agent:', data);
+      if (data && data.stationId) {
+        latestTelemetryCache.set(data.stationId, {
+        ...data,
+        updatedAt: new Date().toISOString()
+        });
+      }
       broadcastTelemetryToAdmins(data);
     });
 
@@ -96,4 +104,4 @@ const sendCommandToStation = (stationId, type, payload = {}, timeoutMs = 10000) 
   return commandId;
 };
 
-module.exports = { initSocket, sendCommandToStation };
+module.exports = { initSocket, sendCommandToStation,latestTelemetryCache};
