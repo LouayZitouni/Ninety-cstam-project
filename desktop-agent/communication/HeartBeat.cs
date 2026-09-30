@@ -7,23 +7,19 @@ public class HeartbeatService
     private readonly WebSocketClient _webSocketClient;
     private readonly string _agentId;
 
-    public HeartbeatService(
-        WebSocketClient webSocketClient,
-        string agentId)
+    public HeartbeatService(WebSocketClient webSocketClient,string agentId)
     {
         _webSocketClient = webSocketClient;
         _agentId = agentId;
     }
 
-    public async Task StartAsync(
-        CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
             if (_webSocketClient.IsConnected)
             {
-                AgentMessage heartbeat =
-                    new AgentMessage
+                AgentMessage heartbeat =new AgentMessage
                     {
                         Type = "heartbeat",
                         AgentId = _agentId
@@ -31,14 +27,9 @@ public class HeartbeatService
 
                 try
                 {
-                    string json =
-                        JsonSerializer.Serialize(
-                            heartbeat
-                        );
+                    string json =JsonSerializer.Serialize(heartbeat);
 
-                    await _webSocketClient.SendAsync(
-                        json
-                    );
+                    await _webSocketClient.SendAsync(json);
                 }
                 catch
                 {
@@ -48,10 +39,7 @@ public class HeartbeatService
 
             try
             {
-                await Task.Delay(
-                    TimeSpan.FromSeconds(10),
-                    cancellationToken
-                );
+                await Task.Delay(TimeSpan.FromSeconds(10),cancellationToken);
             }
             catch (OperationCanceledException)
             {

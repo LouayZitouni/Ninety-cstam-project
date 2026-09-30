@@ -7,21 +7,17 @@ public class WebSocketClient
 {
     private ClientWebSocket? _socket;
 
-    private readonly SemaphoreSlim _sendLock =
-        new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim _sendLock =new SemaphoreSlim(1, 1);
 
-    public bool IsConnected =>
-        _socket?.State == WebSocketState.Open;
+    public bool IsConnected =>_socket?.State == WebSocketState.Open;
 
     public async Task ConnectAsync(string serverUrl)
     {
         await DisconnectAsync();
 
-        _socket =
-            new ClientWebSocket();
+        _socket =new ClientWebSocket();
 
-        Uri serverUri =
-            new Uri(serverUrl);
+        Uri serverUri =new Uri(serverUrl);
 
         Console.WriteLine(
             $"Connecting to {serverUri}..."
@@ -131,7 +127,7 @@ public class WebSocketClient
         }
         catch
         {
-            // Ignore disconnect errors.
+            
         }
         finally
         {

@@ -8,35 +8,27 @@ public class CommandExecutor
     private readonly WindowsManager _windowsManager;
     private readonly AgentStateService _stateService;
 
-    public CommandExecutor(
-        AgentStateService stateService)
+    public CommandExecutor(AgentStateService stateService)
     {
-        _windowsManager =
-            new WindowsManager();
+        _windowsManager =new WindowsManager();
 
-        _stateService =
-            stateService;
+        _stateService =stateService;
     }
 
     public bool Execute(Command command)
     {
-        if (string.IsNullOrWhiteSpace(
-            command.CommandName))
+        if (string.IsNullOrWhiteSpace(command.CommandName))
         {
             return false;
         }
 
-        string commandName =
-            command.CommandName
-                .Trim()
-                .ToLowerInvariant();
+        string commandName =command.CommandName.Trim().ToLowerInvariant();
 
         switch (commandName)
         {
             case "lock":
             {
-                bool success =
-                    _windowsManager.Lock();
+                bool success =_windowsManager.Lock();
 
                 if (success)
                 {

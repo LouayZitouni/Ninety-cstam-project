@@ -24,8 +24,7 @@ public class AgentStatus
 
     public bool MouseConnected { get; set; }
 
-    public List<string> Peripherals { get; set; } =
-        new();
+    public List<string> Peripherals { get; set; } = new();
 
     public bool IsLocked { get; set; }
 

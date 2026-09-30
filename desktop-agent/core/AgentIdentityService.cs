@@ -9,9 +9,7 @@ public class AgentIdentityService
     public AgentIdentityService()
     {
         string folder =
-            Path.Combine(
-                Environment.GetFolderPath(
-                    Environment.SpecialFolder.LocalApplicationData),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "NintyGamingHouse"
             );
 

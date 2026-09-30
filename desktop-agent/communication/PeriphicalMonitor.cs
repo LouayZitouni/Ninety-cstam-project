@@ -37,9 +37,7 @@ public class PeripheralMonitor
 
                 if (
                     pnpClass == "Keyboard" ||
-                    name.Contains(
-                        "keyboard",
-                        StringComparison.OrdinalIgnoreCase)
+                    name.Contains("keyboard",StringComparison.OrdinalIgnoreCase)
                 )
                 {
                     keyboardConnected = true;

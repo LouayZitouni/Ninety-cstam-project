@@ -9,20 +9,14 @@ public class MessageHandler
     private readonly CommandExecutor _commandExecutor;
     private readonly AgentStateService _stateService;
 
-    public MessageHandler(
-        AgentStateService stateService)
+    public MessageHandler(AgentStateService stateService)
     {
         _stateService = stateService;
 
-        _commandExecutor =
-            new CommandExecutor(
-                stateService
-            );
+        _commandExecutor =new CommandExecutor(stateService);
     }
 
-    public bool Handle(
-        string json,
-        string currentAgentId)
+    public bool Handle(string json,string currentAgentId)
     {
         try
         {
@@ -40,13 +34,9 @@ public class MessageHandler
                 return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(
-                    message.AgentId) &&
-                message.AgentId != currentAgentId)
+            if (!string.IsNullOrWhiteSpace(message.AgentId) && message.AgentId != currentAgentId)
             {
-                Console.WriteLine(
-                    "Rejected message for another agent."
-                );
+                Console.WriteLine("Rejected message for another agent.");
 
                 return false;
             }
@@ -63,40 +53,30 @@ public class MessageHandler
                     return HandleSessionEnd(message);
 
                 case "ack":
-                    Console.WriteLine(
-                        $"Server: {message.Message}"
-                    );
+                    Console.WriteLine($"Server: {message.Message}");
 
                     return true;
 
                 case "error":
-                    Console.WriteLine(
-                        $"Server error: {message.Message}"
-                    );
+                    Console.WriteLine($"Server error: {message.Message}");
 
                     return false;
 
                 default:
-                    Console.WriteLine(
-                        $"Unknown message type: {message.Type}"
-                    );
+                    Console.WriteLine($"Unknown message type: {message.Type}");
 
                     return false;
             }
         }
         catch (JsonException)
         {
-            Console.WriteLine(
-                "Invalid JSON received."
-            );
+            Console.WriteLine("Invalid JSON received.");
 
             return false;
         }
         catch (Exception ex)
         {
-            Console.WriteLine(
-                $"Message handling error: {ex.Message}"
-            );
+            Console.WriteLine($"Message handling error: {ex.Message}");
 
             return false;
         }
@@ -111,8 +91,7 @@ public class MessageHandler
             return false;
         }
 
-        Command command =
-            new Command
+        Command command =new Command
             {
                 Type = "command",
                 AgentId = message.AgentId,
@@ -120,13 +99,9 @@ public class MessageHandler
                 SessionId = message.SessionId
             };
 
-        Console.WriteLine(
-            $"Executing command: {command.CommandName}"
-        );
+        Console.WriteLine($"Executing command: {command.CommandName}");
 
-        return _commandExecutor.Execute(
-            command
-        );
+        return _commandExecutor.Execute(command);
     }
 
     private bool HandleSessionStart(
@@ -135,43 +110,32 @@ public class MessageHandler
         if (string.IsNullOrWhiteSpace(
             message.SessionId))
         {
-            Console.WriteLine(
-                "Session start rejected: missing session ID."
-            );
+            Console.WriteLine("Session start rejected: missing session ID.");
 
             return false;
         }
 
         try
         {
-            _stateService.StartSession(
-                message.SessionId
-            );
+            _stateService.StartSession(message.SessionId);
 
-            Console.WriteLine(
-                $"Gaming session started: {message.SessionId}"
-            );
+            Console.WriteLine($"Gaming session started: {message.SessionId}");
 
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine(
-                $"Session start failed: {ex.Message}"
-            );
+            Console.WriteLine($"Session start failed: {ex.Message}");
 
             return false;
         }
     }
 
-    private bool HandleSessionEnd(
-        AgentMessage message)
+    private bool HandleSessionEnd(AgentMessage message)
     {
         _stateService.EndSession();
 
-        Console.WriteLine(
-            $"Gaming session ended: {message.SessionId}"
-        );
+        Console.WriteLine($"Gaming session ended: {message.SessionId}");
 
         return true;
     }
