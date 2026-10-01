@@ -9,9 +9,7 @@ public class AgentIdentityService
     public AgentIdentityService()
     {
         string folder =
-            Path.Combine(
-                Environment.GetFolderPath(
-                    Environment.SpecialFolder.LocalApplicationData),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "NintyGamingHouse"
             );
 
@@ -54,7 +52,7 @@ public class AgentIdentityService
         }
 
         string agentId =
-            $"PC-{Guid.NewGuid():N}"
+            $"{Guid.NewGuid():N}"
                 .ToUpperInvariant();
 
         AgentIdentity newIdentity =

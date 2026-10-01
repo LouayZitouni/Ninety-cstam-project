@@ -11,6 +11,9 @@ const sessionRoutes = require('./routes/sessionRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 
 const app = express();
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+
+app.use('/api/subscriptions', subscriptionRoutes);
 
 app.use(express.json());
 

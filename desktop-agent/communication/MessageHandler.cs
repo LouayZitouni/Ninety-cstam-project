@@ -14,6 +14,13 @@ public class MessageHandler
     public MessageHandler(AgentStateService stateService)
     {
         _stateService = stateService;
+<<<<<<< HEAD
+
+        _commandExecutor =new CommandExecutor(stateService);
+    }
+
+    public bool Handle(string json,string currentAgentId)
+=======
         _commandExecutor = new CommandExecutor(stateService);
     }
 
@@ -21,6 +28,7 @@ public class MessageHandler
     /// Async handler called by SocketIOAgentClient when a command payload is received.
     /// </summary>
     public async Task HandleCommandAsync(JsonElement jsonElement, string currentAgentId, SocketIOAgentClient client)
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
     {
         try
         {
@@ -119,6 +127,10 @@ public class MessageHandler
             if (!string.IsNullOrWhiteSpace(message.AgentId) && message.AgentId != currentAgentId)
             {
                 Console.WriteLine("Rejected message for another agent.");
+<<<<<<< HEAD
+
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
                 return false;
             }
 
@@ -135,25 +147,45 @@ public class MessageHandler
 
                 case "ack":
                     Console.WriteLine($"Server: {message.Message}");
+<<<<<<< HEAD
+
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
                     return true;
 
                 case "error":
                     Console.WriteLine($"Server error: {message.Message}");
+<<<<<<< HEAD
+
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
                     return false;
 
                 default:
                     Console.WriteLine($"Unknown message type: {message.Type}");
+<<<<<<< HEAD
+
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
                     return false;
             }
         }
         catch (JsonException)
         {
             Console.WriteLine("Invalid JSON received.");
+<<<<<<< HEAD
+
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return false;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Message handling error: {ex.Message}");
+<<<<<<< HEAD
+
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return false;
         }
     }
@@ -165,6 +197,15 @@ public class MessageHandler
             return false;
         }
 
+<<<<<<< HEAD
+        Command command =new Command
+            {
+                Type = "command",
+                AgentId = message.AgentId,
+                CommandName = message.Command,
+                SessionId = message.SessionId
+            };
+=======
         Command command = new Command
         {
             Type = "command",
@@ -172,6 +213,7 @@ public class MessageHandler
             CommandName = message.Command,
             SessionId = message.SessionId
         };
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
 
         Console.WriteLine($"Executing command: {command.CommandName}");
 
@@ -183,18 +225,32 @@ public class MessageHandler
         if (string.IsNullOrWhiteSpace(message.SessionId))
         {
             Console.WriteLine("Session start rejected: missing session ID.");
+<<<<<<< HEAD
+
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return false;
         }
 
         try
         {
             _stateService.StartSession(message.SessionId);
+<<<<<<< HEAD
+
             Console.WriteLine($"Gaming session started: {message.SessionId}");
+
+=======
+            Console.WriteLine($"Gaming session started: {message.SessionId}");
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return true;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Session start failed: {ex.Message}");
+<<<<<<< HEAD
+
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return false;
         }
     }
@@ -202,7 +258,13 @@ public class MessageHandler
     private bool HandleSessionEnd(AgentMessage message)
     {
         _stateService.EndSession();
+<<<<<<< HEAD
+
         Console.WriteLine($"Gaming session ended: {message.SessionId}");
+
+=======
+        Console.WriteLine($"Gaming session ended: {message.SessionId}");
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
         return true;
     }
 }

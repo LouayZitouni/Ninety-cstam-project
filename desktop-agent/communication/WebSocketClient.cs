@@ -8,13 +8,47 @@ using System.Threading.Tasks;
 
 namespace DesktopAgent.Communication
 {
+<<<<<<< HEAD
+    private ClientWebSocket? _socket;
+
+    private readonly SemaphoreSlim _sendLock =new SemaphoreSlim(1, 1);
+
+    public bool IsConnected =>_socket?.State == WebSocketState.Open;
+
+    public async Task ConnectAsync(string serverUrl)
+=======
     public class WebSocketClient
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
     {
         private ClientWebSocket? _socket;
 
+<<<<<<< HEAD
+        _socket =new ClientWebSocket();
+
+        Uri serverUri =new Uri(serverUrl);
+
+        Console.WriteLine(
+            $"Connecting to {serverUri}..."
+        );
+
+        await _socket.ConnectAsync(
+            serverUri,
+            CancellationToken.None
+        );
+
+        Console.WriteLine(
+            "Connected to server."
+        );
+    }
+
+    public async Task SendAsync(string message)
+    {
+        if (!IsConnected)
+=======
         public bool IsConnected => _socket != null && _socket.State == WebSocketState.Open;
 
         public async Task ConnectAsync(string serverUrl)
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
         {
             await DisconnectAsync();
 
@@ -125,5 +159,74 @@ namespace DesktopAgent.Communication
 
             return null;
         }
+<<<<<<< HEAD
+
+        byte[] buffer =
+            new byte[8192];
+
+        using MemoryStream messageStream =
+            new MemoryStream();
+
+        while (true)
+        {
+            WebSocketReceiveResult result =
+                await _socket!.ReceiveAsync(
+                    new ArraySegment<byte>(buffer),
+                    CancellationToken.None
+                );
+
+            if (result.MessageType ==
+                WebSocketMessageType.Close)
+            {
+                return null;
+            }
+
+            messageStream.Write(
+                buffer,
+                0,
+                result.Count
+            );
+
+            if (result.EndOfMessage)
+            {
+                break;
+            }
+        }
+
+        return Encoding.UTF8.GetString(
+            messageStream.ToArray()
+        );
+    }
+
+    public async Task DisconnectAsync()
+    {
+        if (_socket == null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_socket.State == WebSocketState.Open ||
+                _socket.State == WebSocketState.CloseReceived)
+            {
+                await _socket.CloseAsync(
+                    WebSocketCloseStatus.NormalClosure,
+                    "Agent disconnecting",
+                    CancellationToken.None
+                );
+            }
+        }
+        catch
+        {
+            
+        }
+        finally
+        {
+            _socket.Dispose();
+            _socket = null;
+        }
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
     }
 }
