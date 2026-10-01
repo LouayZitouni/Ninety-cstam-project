@@ -52,7 +52,7 @@ public class AgentIdentityService
         }
 
         string agentId =
-            $"PC-{Guid.NewGuid():N}"
+            $"{Guid.NewGuid():N}"
                 .ToUpperInvariant();
 
         AgentIdentity newIdentity =

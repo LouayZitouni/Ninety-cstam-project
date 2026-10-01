@@ -25,7 +25,7 @@ const testConnection = async () => {
     const res = await query('SELECT NOW() AS current_time, current_database() AS db_name');
     console.log(`[DB CONNECTED] Database: "${res.rows[0].db_name}" | Server Time: ${res.rows[0].current_time}`);
   } catch (error) {
-    console.error('[DB CONNECTION FAILED] Could not connect to PostgreSQL:', error.message);
+    console.error(error);
     process.exit(1);
   }
 };
