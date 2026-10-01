@@ -8,6 +8,9 @@ const alertRoutes = require('./routes/alertRoutes');
 const reservationRoutes = require('./routes/reservationRoutes');
 
 const app = express();
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+
+app.use('/api/subscriptions', subscriptionRoutes);
 
 app.use(express.json());
 
