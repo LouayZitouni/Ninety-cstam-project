@@ -15,6 +15,11 @@ const TIER_DEFAULT_SPECS = {
   }
 };
 
+const TIER_RATES = {
+  STANDARD: 10.00,
+  VIP: 25.00
+};
+
 const createStation = async ({ name, tier = 'STANDARD', hourlyRate, specifications }) => {
   const finalSpecs = specifications || TIER_DEFAULT_SPECS[tier] || TIER_DEFAULT_SPECS.STANDARD;
 
@@ -89,11 +94,40 @@ const updateStationStatus = async (id, status) => {
   return rows[0];
 };
 
+async function upsertStation({ stationId, machineName, tier = 'STANDARD' }) {
+
+  const selectedTier = TIER_DEFAULT_SPECS[tier] ? tier : 'STANDARD';
+  const specifications = TIER_DEFAULT_SPECS[selectedTier];
+  const hourlyRate = TIER_RATES[selectedTier];
+
+  const query = `
+    INSERT INTO stations (id, name, status, tier, hourly_rate, specifications)
+    VALUES ($1, $2, 'AVAILABLE',$3,$4,$5)
+    ON CONFLICT (id) DO UPDATE 
+    SET status = 'AVAILABLE',
+        name = EXCLUDED.name;
+  `;
+
+  return await db.query(query, [
+    stationId, 
+    machineName || 'Station Sans Nom', 
+    selectedTier,
+    hourlyRate,
+    JSON.stringify(specifications)
+  ]);
+}
+
+async function reserveStationStatus(stationId,status){
+  return await updateStationStatus(stationId,status);
+}
+
 module.exports = {
   createStation,
   findStationById,
   findStationByName,
   findStationsByGpu,
   getAllStations,
-  updateStationStatus
+  updateStationStatus,
+  upsertStation,
+  reserveStationStatus
 };

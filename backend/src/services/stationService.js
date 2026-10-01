@@ -68,11 +68,27 @@ const updateStatus = async (id, status) => {
   return updatedStation;
 };
 
+const reserveStationStatus = async(stationId,status="RESERVED")=>{
+  if(!stationId){
+    const error = new Error('station id is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  const reserve_station = await stationRepo.reserveStationStatus(stationId , status);
+  if(!reserve_station){
+    const error = new Error('could not update status');
+    error.statusCode = 404;
+    throw error;
+  }
+  return reserve_station;
+}
+
 module.exports = {
   createStation,
   getStations,
   getStationById,
   getStationByName,
   getStationsByGpu,
-  updateStatus
+  updateStatus,
+  reserveStationStatus
 };

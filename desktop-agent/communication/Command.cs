@@ -1,12 +1,25 @@
-namespace DesktopAgent.Commands;
+using System.Text.Json.Serialization;
+
+namespace DesktopAgent.Core;
 
 public class Command
 {
-    public string Type { get; set; } = "";
+    [JsonPropertyName("type")]
+    public string CommandName { get; set; } = string.Empty;
 
+    [JsonIgnore]
+    public string Type
+    {
+        get => CommandName;
+        set => CommandName = value;
+    }
+
+    [JsonPropertyName("agentId")]
     public string? AgentId { get; set; }
 
-    public string? CommandName { get; set; }
-
+    [JsonPropertyName("sessionId")]
     public string? SessionId { get; set; }
+
+    [JsonPropertyName("payload")]
+    public object? Payload { get; set; }
 }

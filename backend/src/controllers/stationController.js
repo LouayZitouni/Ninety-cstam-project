@@ -1,5 +1,6 @@
 // backend/src/controllers/stationController.js
 const stationService = require('../services/stationService');
+const  {latestTelemetryCache} = require('../protocols/agentSocketHandler');
 
 const createStation = async (req, res, next) => {
   try {
@@ -84,11 +85,44 @@ const updateStatus = async (req, res, next) => {
   }
 };
 
+const reserveStationStatus = async(req,res,next) =>{
+  try{
+    const { stationId } = req.params;
+    const { status } = req.body;
+    const station = await stationService.reserveStationStatus(stationId,status);
+    res.status(200).json({
+      success: true,
+      data: { station: station }
+    });
+  }catch(err){
+    next(err);
+  }
+}; 
+
+const getStationTelemetry = async (req, res) => {
+  const { id } = req.params;
+  const telemetry = latestTelemetryCache.get(id);
+
+  if (!telemetry) {
+    return res.status(404).json({
+      success: false,
+      message: `No active telemetry received for station ${id}.`
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: telemetry
+  });
+};
+
 module.exports = {
   createStation,
   getStations,
   getStationById,
   getStationByName,
   getStationsByGpu,
-  updateStatus
+  updateStatus,
+  reserveStationStatus,
+  getStationTelemetry
 };

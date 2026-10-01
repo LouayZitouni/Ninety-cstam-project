@@ -1,4 +1,6 @@
+using System;
 using System.Text.Json;
+using System.Threading.Tasks;
 using DesktopAgent.Commands;
 using DesktopAgent.Core;
 
@@ -12,22 +14,110 @@ public class MessageHandler
     public MessageHandler(AgentStateService stateService)
     {
         _stateService = stateService;
+<<<<<<< HEAD
 
         _commandExecutor =new CommandExecutor(stateService);
     }
 
     public bool Handle(string json,string currentAgentId)
+=======
+        _commandExecutor = new CommandExecutor(stateService);
+    }
+
+    /// <summary>
+    /// Async handler called by SocketIOAgentClient when a command payload is received.
+    /// </summary>
+    public async Task HandleCommandAsync(JsonElement jsonElement, string currentAgentId, SocketIOAgentClient client)
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
     {
         try
         {
-            AgentMessage? message =
-                JsonSerializer.Deserialize<AgentMessage>(
-                    json,
-                    new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }
-                );
+            string rawJson = jsonElement.GetRawText();
+
+            // Deserialization attempt into AgentMessage
+            AgentMessage? message = JsonSerializer.Deserialize<AgentMessage>(
+                rawJson,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }
+            );
+
+            // Handle direct payload object like { "command": "LOCK_SCREEN" } without explicit "type"
+            if (message != null && string.IsNullOrEmpty(message.Type))
+            {
+                if (!string.IsNullOrEmpty(message.Command))
+                {
+                    message.Type = "command";
+                }
+                else if (jsonElement.ValueKind == JsonValueKind.Object && jsonElement.TryGetProperty("command", out var cmdProp))
+                {
+                    message.Type = "command";
+                    message.Command = cmdProp.GetString();
+                }
+            }
+
+            bool success = false;
+
+            if (message != null && !string.IsNullOrEmpty(message.Type))
+            {
+                if (string.IsNullOrEmpty(message.AgentId))
+                {
+                    message.AgentId = currentAgentId;
+                }
+
+                switch (message.Type.ToLowerInvariant())
+                {
+                    case "command":
+                        success = HandleCommand(message);
+                        break;
+
+                    case "session_start":
+                        success = HandleSessionStart(message);
+                        break;
+
+                    case "session_end":
+                        success = HandleSessionEnd(message);
+                        break;
+
+                    default:
+                        success = Handle(rawJson, currentAgentId);
+                        break;
+                }
+            }
+            else
+            {
+                success = Handle(rawJson, currentAgentId);
+            }
+
+            // Feedback emission back to Socket.IO backend
+            if (client != null && client.IsConnected)
+            {
+                await client.EmitAsync("COMMAND_RESULT", new
+                {
+                    stationId = currentAgentId,
+                    status = success ? "SUCCESS" : "FAILED",
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Message handling error: {ex.Message}");
+        }
+    }
+
+    public bool Handle(string json, string currentAgentId)
+    {
+        try
+        {
+            AgentMessage? message = JsonSerializer.Deserialize<AgentMessage>(
+                json,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }
+            );
 
             if (message == null)
             {
@@ -37,7 +127,10 @@ public class MessageHandler
             if (!string.IsNullOrWhiteSpace(message.AgentId) && message.AgentId != currentAgentId)
             {
                 Console.WriteLine("Rejected message for another agent.");
+<<<<<<< HEAD
 
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
                 return false;
             }
 
@@ -54,43 +147,57 @@ public class MessageHandler
 
                 case "ack":
                     Console.WriteLine($"Server: {message.Message}");
+<<<<<<< HEAD
 
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
                     return true;
 
                 case "error":
                     Console.WriteLine($"Server error: {message.Message}");
+<<<<<<< HEAD
 
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
                     return false;
 
                 default:
                     Console.WriteLine($"Unknown message type: {message.Type}");
+<<<<<<< HEAD
 
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
                     return false;
             }
         }
         catch (JsonException)
         {
             Console.WriteLine("Invalid JSON received.");
+<<<<<<< HEAD
 
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return false;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Message handling error: {ex.Message}");
+<<<<<<< HEAD
 
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return false;
         }
     }
 
-    private bool HandleCommand(
-        AgentMessage message)
+    private bool HandleCommand(AgentMessage message)
     {
-        if (string.IsNullOrWhiteSpace(
-            message.Command))
+        if (string.IsNullOrWhiteSpace(message.Command))
         {
             return false;
         }
 
+<<<<<<< HEAD
         Command command =new Command
             {
                 Type = "command",
@@ -98,35 +205,52 @@ public class MessageHandler
                 CommandName = message.Command,
                 SessionId = message.SessionId
             };
+=======
+        Command command = new Command
+        {
+            Type = "command",
+            AgentId = message.AgentId,
+            CommandName = message.Command,
+            SessionId = message.SessionId
+        };
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
 
         Console.WriteLine($"Executing command: {command.CommandName}");
 
         return _commandExecutor.Execute(command);
     }
 
-    private bool HandleSessionStart(
-        AgentMessage message)
+    private bool HandleSessionStart(AgentMessage message)
     {
-        if (string.IsNullOrWhiteSpace(
-            message.SessionId))
+        if (string.IsNullOrWhiteSpace(message.SessionId))
         {
             Console.WriteLine("Session start rejected: missing session ID.");
+<<<<<<< HEAD
 
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return false;
         }
 
         try
         {
             _stateService.StartSession(message.SessionId);
+<<<<<<< HEAD
 
             Console.WriteLine($"Gaming session started: {message.SessionId}");
 
+=======
+            Console.WriteLine($"Gaming session started: {message.SessionId}");
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return true;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Session start failed: {ex.Message}");
+<<<<<<< HEAD
 
+=======
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
             return false;
         }
     }
@@ -134,9 +258,13 @@ public class MessageHandler
     private bool HandleSessionEnd(AgentMessage message)
     {
         _stateService.EndSession();
+<<<<<<< HEAD
 
         Console.WriteLine($"Gaming session ended: {message.SessionId}");
 
+=======
+        Console.WriteLine($"Gaming session ended: {message.SessionId}");
+>>>>>>> b8492b4cf2b9c8272fcc4920732b28ae93ea1bdd
         return true;
     }
 }
