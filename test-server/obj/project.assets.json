@@ -8,26 +8,24 @@
     "net10.0": []
   },
   "packageFolders": {
-    "C:\\Users\\belke\\.nuget\\packages\\": {}
+    "C:\\Users\\Acer\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\belke\\OneDrive\\Desktop\\lmaalem\\Ninety-cstam-project\\test-server\\test-server.csproj",
+      "projectUniqueName": "C:\\Users\\Acer\\OneDrive\\Desktop\\cstam\\Ninety-cstam-project\\test-server\\test-server.csproj",
       "projectName": "test-server",
-      "projectPath": "C:\\Users\\belke\\OneDrive\\Desktop\\lmaalem\\Ninety-cstam-project\\test-server\\test-server.csproj",
-      "packagesPath": "C:\\Users\\belke\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\belke\\OneDrive\\Desktop\\lmaalem\\Ninety-cstam-project\\test-server\\obj\\",
+      "projectPath": "C:\\Users\\Acer\\OneDrive\\Desktop\\cstam\\Ninety-cstam-project\\test-server\\test-server.csproj",
+      "packagesPath": "C:\\Users\\Acer\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Acer\\OneDrive\\Desktop\\cstam\\Ninety-cstam-project\\test-server\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\belke\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "C:\\Users\\Acer\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
