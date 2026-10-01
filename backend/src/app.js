@@ -1,4 +1,5 @@
 const express = require('express');
+require('dotenv').config();
 const path = require('path');
 const stationRoutes = require('./routes/stationRoute');
 const errorHandler = require('./middlewares/errorHandler');
@@ -6,6 +7,8 @@ const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const alertRoutes = require('./routes/alertRoutes');
 const reservationRoutes = require('./routes/reservationRoutes');
+const sessionRoutes = require('./routes/sessionRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
 
 const app = express();
 
@@ -32,6 +35,10 @@ app.use('/socket', adminRoutes);
 app.use('/api/alerts', alertRoutes);
 
 app.use('/api/reservations', reservationRoutes);
+
+app.use('/api/sessions',sessionRoutes);
+
+app.use('/api/transactions',transactionRoutes);
 
 app.use(errorHandler);
 
