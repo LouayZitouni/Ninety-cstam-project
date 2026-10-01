@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ninety Gaming House - Subscription Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #121212; color: #fff; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 8px; margin-bottom: 20px; max-width: 500px; border: 1px solid #333; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; border-radius: 4px; border: none; }
+        input { background: #2a2a2a; color: white; }
+        button { background-color: #007bff; color: white; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #0056b3; }
+        .plan-btn { background-color: #28a745; margin-top: 10px; }
+        .plan-btn:hover { background-color: #218838; }
+        pre { background: #000; padding: 10px; border-radius: 4px; overflow-x: auto; color: #00ff00; }
+    </style>
+</head>
+<body>
+
+    <h2>Ninety Gaming House - Subscription Tester</h2>
+
+    <!-- 1. Authentication Card -->
+    <div class="card">
+        <h3>1. Login</h3>
+        <input type="text" id="username" placeholder="Username" value="testuser">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <button onclick="login()">Login & Save Token</button>
+        <p><strong>Status:</strong> <span id="authStatus" style="color: #ff4d4d;">Not Logged In</span></p>
+    </div>
+
+    <!-- 2. Available Membership Plans Card -->
+    <div class="card">
+        <h3>2. Select Membership Plan</h3>
+        <button onclick="loadPlans()">Fetch Available Plans</button>
+        <div id="plansList"></div>
+    </div>
+
+    <!-- 3. Active Membership Status Card -->
+    <div class="card">
+        <h3>3. My Current Subscription</h3>
+        <button onclick="checkSubscription()">Check My Active Status</button>
+        <pre id="subscriptionOutput">No data checked yet.</pre>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let userToken = '';
+
+        // Step 1: Handle Login
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.token) {
+                    userToken = data.token;
+                    document.getElementById('authStatus').innerText = 'Logged In Successfully!';
+                    document.getElementById('authStatus').style.color = '#00ff00';
+                } else {
+                    alert('Login Failed: ' + (data.message || 'Check credentials'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error connecting to backend server on port 5000');
+            }
+        }
+
+        // Step 2: Fetch Plans & Create UI Buttons
+        async function loadPlans() {
+            try {
+                const res = await fetch(`${API_BASE}/subscriptions/plans`);
+                const data = await res.json();
+
+                const container = document.getElementById('plansList');
+                container.innerHTML = '';
+
+                if (data.plans && data.plans.length > 0) {
+                    data.plans.forEach(plan => {
+                        const btn = document.createElement('button');
+                        btn.className = 'plan-btn';
+                        btn.innerText = `Select ${plan.name} ($${plan.price} - ${plan.duration_days} Days)`;
+                        btn.onclick = () => subscribe(plan.id);
+                        container.appendChild(btn);
+                    });
+                } else {
+                    container.innerHTML = '<p>No plans found. Add plans to your database first!</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Failed to load plans');
+            }
+        }
+
+        // Step 3: Purchase/Activate Subscription
+        async function subscribe(planId) {
+            if (!userToken) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/subscriptions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({ planId })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Membership Activated!');
+                    checkSubscription(); // Refresh status view automatically
+                } else {
+                    alert('Subscription failed: ' + data.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error purchasing subscription');
+            }
+        }
+
+        // Step 4: Check Active Status
+        async function checkSubscription() {
+            if (!userToken) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/subscriptions/me`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                const data = await res.json();
+                document.getElementById('subscriptionOutput').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                console.error(err);
+                alert('Error fetching subscription status');
+            }
+        }
+    </script>
+</body>
+</html>
